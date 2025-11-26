@@ -1,7 +1,7 @@
 Cstyle – A Modern E-Commerce Webstore for Fashion
 Project Description
 
-Cstyle is a modern, AI-powered clothing webstore built using Next.js, TypeScript, and MongoDB.
+Cstyle is a modern clothing webstore built using Next.js, TypeScript, and MongoDB.
 The platform features a sleek user interface, a fully functional admin dashboard, and smart features designed to deliver a smooth online shopping experience.
 
 This project represents a complete fashion e-commerce solution—from product management to order handling—all built with clean architecture and scalable technologies.
@@ -22,8 +22,9 @@ Git
 (Optional) Google Cloud SDK for AI features
 
 1. Clone the Repository
-   git clone https://github.com/chironto2/Cstyle-A_clothing_webstore.git
-   cd Cstyle-A_clothing_webstore
+   git clone https://github.com/chironto2/Cstyle-a_clothing_web-
+   git
+   cd Cstyle-a_clothing_web-
 
 2. Install Dependencies
    npm install
