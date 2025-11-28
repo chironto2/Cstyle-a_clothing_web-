@@ -1,4 +1,3 @@
-
 import { connectToDatabase } from '@/lib/mongodb';
 import type { User, DbUser } from '@/types';
 import { ObjectId } from 'mongodb';
@@ -7,24 +6,37 @@ import bcrypt from 'bcryptjs';
 /**
  * Fetches all users from the 'users' collection.
  * Excludes the 'hashedPassword' field.
+ * Only shows users who joined from November 1, 2025 onwards.
  */
 export async function getUsers(): Promise<User[]> {
   console.log('[userService] getUsers called');
   try {
     const { db } = await connectToDatabase();
     const usersCollection = db.collection<DbUser>('users');
-    // Find all users and project to exclude hashedPassword
-    const usersArray = await usersCollection.find({}, {
-      projection: { hashedPassword: 0 }
-    }).sort({ createdAt: -1 }).toArray();
+
+    // Filter users who joined from November 1, 2025 onwards
+    const novemberFirst2025 = new Date('2025-11-01');
+
+    // Find all users who joined from November onwards and project to exclude hashedPassword
+    const usersArray = await usersCollection
+      .find(
+        { createdAt: { $gte: novemberFirst2025 } },
+        {
+          projection: { hashedPassword: 0 },
+        }
+      )
+      .sort({ createdAt: -1 })
+      .toArray();
 
     if (usersArray.length === 0) {
-      console.log('[userService] No users found in the database.');
+      console.log('[userService] No users found from November 2025 onwards.');
     } else {
-      console.log(`[userService] Found ${usersArray.length} users in the database.`);
+      console.log(
+        `[userService] Found ${usersArray.length} users from November 2025 onwards.`
+      );
     }
 
-    return usersArray.map(user => ({
+    return usersArray.map((user) => ({
       ...user,
       id: user._id.toString(), // Ensure _id is stringified to id
       _id: user._id.toString(),
@@ -38,10 +50,17 @@ export async function getUsers(): Promise<User[]> {
 /**
  * Updates a user's role.
  */
-export async function updateUserRole(userId: string, newRole: 'user' | 'admin'): Promise<User | null> {
-  console.log(`[userService] updateUserRole called for userId: ${userId}, newRole: ${newRole}`);
+export async function updateUserRole(
+  userId: string,
+  newRole: 'user' | 'admin'
+): Promise<User | null> {
+  console.log(
+    `[userService] updateUserRole called for userId: ${userId}, newRole: ${newRole}`
+  );
   if (!ObjectId.isValid(userId)) {
-    console.warn(`[userService] Invalid user ID format for role update: ${userId}`);
+    console.warn(
+      `[userService] Invalid user ID format for role update: ${userId}`
+    );
     throw new Error('Invalid user ID format.');
   }
   if (newRole !== 'user' && newRole !== 'admin') {
@@ -59,14 +78,18 @@ export async function updateUserRole(userId: string, newRole: 'user' | 'admin'):
     );
 
     if (!result) {
-      console.warn(`[userService] User not found for role update with ID: ${userId}`);
+      console.warn(
+        `[userService] User not found for role update with ID: ${userId}`
+      );
       return null;
     }
-    
+
     const updatedUser = result as DbUser | null;
 
     if (updatedUser) {
-      console.log(`[userService] User role for ${userId} updated successfully to ${newRole}.`);
+      console.log(
+        `[userService] User role for ${userId} updated successfully to ${newRole}.`
+      );
       return {
         ...updatedUser,
         id: updatedUser._id.toString(),
@@ -75,7 +98,10 @@ export async function updateUserRole(userId: string, newRole: 'user' | 'admin'):
     }
     return null;
   } catch (error: any) {
-    console.error(`[userService] Error updating user role for ${userId}:`, error.message);
+    console.error(
+      `[userService] Error updating user role for ${userId}:`,
+      error.message
+    );
     throw new Error('Failed to update user role in database.');
   }
 }
@@ -86,24 +112,33 @@ export async function updateUserRole(userId: string, newRole: 'user' | 'admin'):
 export async function deleteUser(userId: string): Promise<boolean> {
   console.log(`[userService] deleteUser called for ID: ${userId}`);
   if (!ObjectId.isValid(userId)) {
-    console.warn(`[userService] Invalid user ID format for deletion: ${userId}`);
+    console.warn(
+      `[userService] Invalid user ID format for deletion: ${userId}`
+    );
     return false;
   }
 
   try {
     const { db } = await connectToDatabase();
     const usersCollection = db.collection('users');
-    const result = await usersCollection.deleteOne({ _id: new ObjectId(userId) });
+    const result = await usersCollection.deleteOne({
+      _id: new ObjectId(userId),
+    });
 
     if (result.deletedCount === 0) {
-      console.warn(`[userService] User not found for deletion with ID: ${userId}`);
+      console.warn(
+        `[userService] User not found for deletion with ID: ${userId}`
+      );
       return false;
     }
-    
+
     console.log(`[userService] User ${userId} deleted successfully.`);
     return true;
   } catch (error: any) {
-    console.error(`[userService] Error deleting user ${userId}:`, error.message);
+    console.error(
+      `[userService] Error deleting user ${userId}:`,
+      error.message
+    );
     throw new Error('Failed to delete user from database.');
   }
 }
@@ -112,37 +147,40 @@ export async function deleteUser(userId: string): Promise<boolean> {
  * Fetches a single user by ID, excluding password.
  */
 export async function getUserById(userId: string): Promise<User | null> {
-    console.log(`[userService] getUserById called for ID: ${userId}`);
-    if (!ObjectId.isValid(userId)) {
-        console.warn(`[userService] Invalid user ID format: ${userId}`);
-        return null;
+  console.log(`[userService] getUserById called for ID: ${userId}`);
+  if (!ObjectId.isValid(userId)) {
+    console.warn(`[userService] Invalid user ID format: ${userId}`);
+    return null;
+  }
+
+  try {
+    const { db } = await connectToDatabase();
+    const usersCollection = db.collection<DbUser>('users');
+    const user = await usersCollection.findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { hashedPassword: 0 } }
+    );
+
+    if (!user) {
+      console.warn(`[userService] User not found for ID: ${userId}`);
+      return null;
     }
 
-    try {
-        const { db } = await connectToDatabase();
-        const usersCollection = db.collection<DbUser>('users');
-        const user = await usersCollection.findOne(
-            { _id: new ObjectId(userId) },
-            { projection: { hashedPassword: 0 } }
-        );
-
-        if (!user) {
-            console.warn(`[userService] User not found for ID: ${userId}`);
-            return null;
-        }
-        
-        console.log(`[userService] Fetched user: ${user.email}`);
-        return {
-            ...user,
-            id: user._id.toString(),
-            _id: user._id.toString(),
-            createdAt: user.createdAt?.toISOString(),
-            updatedAt: user.updatedAt?.toISOString(),
-        } as User;
-    } catch (error: any) {
-        console.error(`[userService] Error fetching user by ID ${userId}:`, error.message);
-        throw new Error('Failed to fetch user by ID from database.');
-    }
+    console.log(`[userService] Fetched user: ${user.email}`);
+    return {
+      ...user,
+      id: user._id.toString(),
+      _id: user._id.toString(),
+      createdAt: user.createdAt?.toISOString(),
+      updatedAt: user.updatedAt?.toISOString(),
+    } as User;
+  } catch (error: any) {
+    console.error(
+      `[userService] Error fetching user by ID ${userId}:`,
+      error.message
+    );
+    throw new Error('Failed to fetch user by ID from database.');
+  }
 }
 
 /**
@@ -152,7 +190,12 @@ export async function updateUserProfile(
   userId: string,
   updates: { name?: string; email?: string; newPassword?: string }
 ): Promise<User | null> {
-  console.log(`[userService] updateUserProfile called for userId: ${userId} with updates:`, JSON.stringify(updates, (key, value) => key === 'newPassword' ? '***' : value));
+  console.log(
+    `[userService] updateUserProfile called for userId: ${userId} with updates:`,
+    JSON.stringify(updates, (key, value) =>
+      key === 'newPassword' ? '***' : value
+    )
+  );
   if (!ObjectId.isValid(userId)) {
     throw new Error('Invalid user ID format.');
   }
@@ -160,20 +203,35 @@ export async function updateUserProfile(
   const { db } = await connectToDatabase();
   const usersCollection = db.collection<DbUser>('users');
 
-  const updatePayload: Partial<DbUser> & { updatedAt?: Date } = { updatedAt: new Date() };
+  const updatePayload: Partial<DbUser> & { updatedAt?: Date } = {
+    updatedAt: new Date(),
+  };
 
-  if (updates.name && typeof updates.name === 'string' && updates.name.trim() !== '') {
+  if (
+    updates.name &&
+    typeof updates.name === 'string' &&
+    updates.name.trim() !== ''
+  ) {
     updatePayload.name = updates.name.trim();
   }
 
-  if (updates.email && typeof updates.email === 'string' && updates.email.trim() !== '') {
+  if (
+    updates.email &&
+    typeof updates.email === 'string' &&
+    updates.email.trim() !== ''
+  ) {
     const emailToUpdate = updates.email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToUpdate)) {
       throw new Error('Invalid email format.');
     }
-    const existingUserWithEmail = await usersCollection.findOne({ email: emailToUpdate, _id: { $ne: new ObjectId(userId) } });
+    const existingUserWithEmail = await usersCollection.findOne({
+      email: emailToUpdate,
+      _id: { $ne: new ObjectId(userId) },
+    });
     if (existingUserWithEmail) {
-      throw new Error('This email address is already in use by another account.');
+      throw new Error(
+        'This email address is already in use by another account.'
+      );
     }
     updatePayload.email = emailToUpdate;
   }
@@ -184,9 +242,11 @@ export async function updateUserProfile(
     }
     updatePayload.hashedPassword = await bcrypt.hash(updates.newPassword, 10);
   }
-  
+
   if (Object.keys(updatePayload).length === 1 && updatePayload.updatedAt) {
-    console.log('[userService] No valid data updates provided for profile. Returning current user state.');
+    console.log(
+      '[userService] No valid data updates provided for profile. Returning current user state.'
+    );
     const currentUser = await getUserById(userId);
     return currentUser;
   }
@@ -198,7 +258,9 @@ export async function updateUserProfile(
   );
 
   if (!result) {
-    console.warn(`[userService] User not found for profile update with ID: ${userId}`);
+    console.warn(
+      `[userService] User not found for profile update with ID: ${userId}`
+    );
     return null;
   }
 
@@ -222,7 +284,10 @@ export async function updateUserProfile(
  * @param newPassword - The new plain text password.
  * @returns True if the password was successfully reset, false otherwise.
  */
-export async function resetUserPassword(userId: string, newPassword: string): Promise<boolean> {
+export async function resetUserPassword(
+  userId: string,
+  newPassword: string
+): Promise<boolean> {
   console.log(`[userService] resetUserPassword called for userId: ${userId}`);
   if (!ObjectId.isValid(userId)) {
     console.error('[userService] Invalid user ID format for password reset.');
@@ -243,13 +308,20 @@ export async function resetUserPassword(userId: string, newPassword: string): Pr
     );
 
     if (result.matchedCount === 0) {
-      console.warn(`[userService] User not found for password reset: ${userId}`);
+      console.warn(
+        `[userService] User not found for password reset: ${userId}`
+      );
       return false;
     }
-    console.log(`[userService] Password reset successfully for userId: ${userId}`);
+    console.log(
+      `[userService] Password reset successfully for userId: ${userId}`
+    );
     return true;
   } catch (error: any) {
-    console.error(`[userService] Error resetting password for userId ${userId}:`, error.message);
+    console.error(
+      `[userService] Error resetting password for userId ${userId}:`,
+      error.message
+    );
     throw error;
   }
 }

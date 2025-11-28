@@ -68,6 +68,7 @@ export default function LoginPage() {
         localStorage.setItem('authToken', result.token);
         localStorage.setItem('userRole', result.user.role);
         localStorage.setItem('userId', result.user.id);
+        localStorage.setItem('userName', result.user.name || 'User');
 
         window.dispatchEvent(
           new StorageEvent('storage', {

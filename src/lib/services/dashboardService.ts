@@ -71,8 +71,8 @@ export async function getDashboardAnalytics(): Promise<DashboardMetrics> {
       salesGrowthPercentage = 100; // Infinite growth if last month was 0 and this month is positive
     }
 
-    // --- Monthly Sales Chart Data (Last 6 Months) ---
-    const N_MONTHS_FOR_CHART = 6;
+    // --- Monthly Sales Chart Data (Last 3 Months) ---
+    const N_MONTHS_FOR_CHART = 3;
     const chartStartDate = new Date(today.getFullYear(), today.getMonth() - (N_MONTHS_FOR_CHART - 1), 1);
 
     const monthlySalesAggPipeline = [
@@ -141,9 +141,9 @@ export async function getDashboardAnalytics(): Promise<DashboardMetrics> {
       salesThisMonth: 0,
       salesLastMonth: 0,
       salesGrowthPercentage: 0,
-      monthlySalesChartData: Array(6).fill(null).map((_, i) => {
+      monthlySalesChartData: Array(3).fill(null).map((_, i) => {
         const d = new Date();
-        d.setMonth(d.getMonth() - (5-i));
+        d.setMonth(d.getMonth() - (2-i));
         const monthMap = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         return { name: `${monthMap[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`, sales: 0 };
       }),

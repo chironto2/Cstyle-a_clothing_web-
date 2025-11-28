@@ -19,10 +19,10 @@ const client = new MongoClient(uri);
         { $set: { hashedPassword: hashedPassword, updatedAt: new Date() } }
       );
 
-    console.log('✅ Admin password has been reset successfully!');
+    console.log(' Admin password has been reset successfully!');
     console.log('');
-    console.log('📧 Email: can@admin.com');
-    console.log('🔐 Password: admin123');
+    console.log(' Email: can@admin.com');
+    console.log(' Password: admin123');
     console.log('');
     console.log('You can now log in with these credentials.');
 

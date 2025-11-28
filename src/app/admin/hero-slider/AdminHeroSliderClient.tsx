@@ -268,7 +268,7 @@ export default function AdminHeroSliderClient() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>CAN Slider Management</CardTitle>
+          <CardTitle>Cstyle Slider Management</CardTitle>
           <CardDescription>Loading slides...</CardDescription>
         </CardHeader>
         <CardContent>

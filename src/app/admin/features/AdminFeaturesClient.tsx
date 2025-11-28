@@ -18,7 +18,7 @@ export default function AdminFeaturesClient() {
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
             <Film size={22} className="mr-2 text-primary" />
-            CAN Slider Management
+            Cstyle Slider Management
           </CardTitle>
           <CardDescription>
             Manage the images, text, and links for the slides displayed in the

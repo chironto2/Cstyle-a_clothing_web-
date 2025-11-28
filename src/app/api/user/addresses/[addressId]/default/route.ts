@@ -1,11 +1,15 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/authUtils';
 import { setDefaultAddress } from '@/lib/services/addressService';
 
-export async function POST(req: NextRequest, { params }: { params: { addressId: string } }) {
-  const { addressId } = params;
-  console.log(`[API /api/user/addresses/${addressId}/default] POST request received`);
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { addressId: string } }
+) {
+  const { addressId } = await params;
+  console.log(
+    `[API /api/user/addresses/${addressId}/default] POST request received`
+  );
   try {
     const userId = await getUserIdFromRequest(req);
     if (!userId) {
@@ -16,15 +20,26 @@ export async function POST(req: NextRequest, { params }: { params: { addressId: 
     if (!success) {
       // This could mean the address wasn't found, or it was already default.
       // The service layer handles the "already default" case gracefully.
-      return NextResponse.json({ message: 'Failed to set default address or address not found.' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Failed to set default address or address not found.' },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ message: 'Address set as default successfully.' }, { status: 200 });
-
+    return NextResponse.json(
+      { message: 'Address set as default successfully.' },
+      { status: 200 }
+    );
   } catch (error: any) {
-    console.error(`[API /api/user/addresses/${addressId}/default] POST Error:`, error.message);
+    console.error(
+      `[API /api/user/addresses/${addressId}/default] POST Error:`,
+      error.message
+    );
     if (error.message.includes('Invalid ID format')) {
       return NextResponse.json({ message: error.message }, { status: 400 });
     }
-    return NextResponse.json({ message: 'Failed to set default address.', error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Failed to set default address.', error: error.message },
+      { status: 500 }
+    );
   }
 }

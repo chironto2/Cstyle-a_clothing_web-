@@ -41,6 +41,7 @@ export default function Header() {
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false); // New State
+  const [userName, setUserName] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -60,16 +61,20 @@ export default function Header() {
     console.log('[Header] checkAuth called');
     const token = localStorage.getItem('authToken');
     const role = localStorage.getItem('userRole');
+    const name = localStorage.getItem('userName');
     const currentIsAuthenticated = !!token;
 
     setIsAuthenticated(currentIsAuthenticated);
     setLoggedInUserRole(currentIsAuthenticated ? role : null);
+    setUserName(currentIsAuthenticated ? name : null);
     setIsLoadingAuth(false);
     console.log(
       '[Header] checkAuth - isAuthenticated:',
       currentIsAuthenticated,
       'Role:',
-      currentIsAuthenticated ? role : null
+      currentIsAuthenticated ? role : null,
+      'Name:',
+      currentIsAuthenticated ? name : null
     );
     return currentIsAuthenticated;
   }, []);
@@ -231,15 +236,7 @@ export default function Header() {
   let authActionLabel = 'Login';
 
   if (!isLoadingAuth) {
-    if (isAuthenticated && loggedInUserRole === 'admin') {
-      authActionIcon = <UserCog className="h-5 w-5" />;
-      authActionLink = '/admin/dashboard';
-      authActionLabel = 'Admin Panel';
-    } else if (isAuthenticated && loggedInUserRole === 'user') {
-      authActionIcon = <User className="h-5 w-5" />;
-      authActionLink = '/dashboard/profile';
-      authActionLabel = 'My Account';
-    } else {
+    if (!isAuthenticated || !userName) {
       authActionIcon = <LogIn className="h-5 w-5" />;
     }
   } else {
@@ -329,24 +326,22 @@ export default function Header() {
                 <Button variant="ghost" size="icon" disabled>
                   <LogIn className="h-5 w-5 opacity-50" />
                 </Button>
+              ) : isAuthenticated && userName ? (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/profile')}
+                  className="gap-2 text-sm"
+                  aria-label="View profile"
+                >
+                  <User className="h-4 w-4" />
+                  {userName}
+                </Button>
               ) : (
-                <>
-                  <Link href={authActionLink} aria-label={authActionLabel}>
-                    <Button variant="ghost" size="icon">
-                      {authActionIcon}
-                    </Button>
-                  </Link>
-                  {isAuthenticated && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleLogout}
-                      aria-label="Logout"
-                    >
-                      <LogOut className="h-5 w-5" />
-                    </Button>
-                  )}
-                </>
+                <Link href={authActionLink} aria-label={authActionLabel}>
+                  <Button variant="ghost" size="icon">
+                    {authActionIcon}
+                  </Button>
+                </Link>
               )}
             </div>
 
@@ -432,9 +427,12 @@ export default function Header() {
                       <div className="flex items-center py-2 px-3 rounded-md text-muted-foreground text-base opacity-50">
                         <LogIn size={20} className="mr-3" /> Loading...
                       </div>
-                    ) : (
+                    ) : isAuthenticated && userName ? (
                       <>
-                        {isAuthenticated && loggedInUserRole === 'admin' && (
+                        <div className="flex items-center py-2 px-3 rounded-md text-primary text-base font-medium">
+                          <User size={20} className="mr-3" /> {userName}
+                        </div>
+                        {loggedInUserRole === 'admin' && (
                           <Link
                             href="/admin/dashboard"
                             onClick={() => setIsSheetOpen(false)}
@@ -443,7 +441,7 @@ export default function Header() {
                             <UserCog size={20} className="mr-3" /> Admin Panel
                           </Link>
                         )}
-                        {isAuthenticated && loggedInUserRole === 'user' && (
+                        {loggedInUserRole === 'user' && (
                           <Link
                             href="/dashboard/profile"
                             onClick={() => setIsSheetOpen(false)}
@@ -452,32 +450,30 @@ export default function Header() {
                             <User size={20} className="mr-3" /> My Profile
                           </Link>
                         )}
-                        {isAuthenticated ? (
-                          <Button
-                            onClick={handleLogout}
-                            variant="ghost"
-                            className="flex items-center py-2 px-3 rounded-md text-foreground hover:text-primary hover:bg-accent transition-colors text-base justify-start w-full"
-                          >
-                            <LogOut size={20} className="mr-3" /> Logout
-                          </Button>
-                        ) : (
-                          <>
-                            <Link
-                              href="/login"
-                              onClick={() => setIsSheetOpen(false)}
-                              className="flex items-center py-2 px-3 rounded-md text-foreground hover:text-primary hover:bg-accent transition-colors text-base"
-                            >
-                              <LogIn size={20} className="mr-3" /> Login
-                            </Link>
-                            <Link
-                              href="/register"
-                              onClick={() => setIsSheetOpen(false)}
-                              className="flex items-center py-2 px-3 rounded-md text-foreground hover:text-primary hover:bg-accent transition-colors text-base"
-                            >
-                              <UserPlus size={20} className="mr-3" /> Register
-                            </Link>
-                          </>
-                        )}
+                        <Button
+                          onClick={handleLogout}
+                          variant="ghost"
+                          className="flex items-center py-2 px-3 rounded-md text-foreground hover:text-primary hover:bg-accent transition-colors text-base justify-start w-full"
+                        >
+                          <LogOut size={20} className="mr-3" /> Logout
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/login"
+                          onClick={() => setIsSheetOpen(false)}
+                          className="flex items-center py-2 px-3 rounded-md text-foreground hover:text-primary hover:bg-accent transition-colors text-base"
+                        >
+                          <LogIn size={20} className="mr-3" /> Login
+                        </Link>
+                        <Link
+                          href="/register"
+                          onClick={() => setIsSheetOpen(false)}
+                          className="flex items-center py-2 px-3 rounded-md text-foreground hover:text-primary hover:bg-accent transition-colors text-base"
+                        >
+                          <UserPlus size={20} className="mr-3" /> Register
+                        </Link>
                       </>
                     )}
                   </nav>

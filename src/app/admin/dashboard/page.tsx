@@ -1,14 +1,31 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LayoutDashboard, ShoppingCart, Package, Users, TrendingUp, PackagePlus } from 'lucide-react';
-import { getDashboardAnalytics, type DashboardMetrics, type MonthlySalesData } from '@/lib/services/dashboardService';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Package,
+  Users,
+  TrendingUp,
+  PackagePlus,
+} from 'lucide-react';
+import {
+  getDashboardAnalytics,
+  type DashboardMetrics,
+  type MonthlySalesData,
+} from '@/lib/services/dashboardService';
 import { cn } from '@/lib/utils';
 import type React from 'react';
 import AdminSalesChart from './AdminSalesChart';
 
 export const metadata = {
-  title: 'Admin Dashboard - CAN',
-  description: 'Overview of the CAN e-commerce platform sales, orders, and users.',
+  title: 'Admin Dashboard - Cstyle',
+  description:
+    'Overview of the Cstyle e-commerce platform sales, orders, and users.',
 };
 
 export const dynamic = 'force-dynamic'; // Ensure data is fetched on each request
@@ -29,9 +46,9 @@ const TakaIcon = (props: React.SVGProps<SVGSVGElement>) => (
       y="50%"
       dominantBaseline="central"
       textAnchor="middle"
-      fontSize="28" 
+      fontSize="28"
       fontFamily="system-ui, sans-serif"
-      fontWeight= "9000"
+      fontWeight="9000"
     >
       ৳
     </text>
@@ -48,29 +65,55 @@ interface MetricCardProps {
   className?: string;
 }
 
-function MetricCard({ title, value, icon: Icon, description, trend, trendDirection, className }: MetricCardProps) {
-  const trendColor = trendDirection === 'up' ? 'text-green-600' : trendDirection === 'down' ? 'text-red-600' : 'text-muted-foreground';
+function MetricCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+  trend,
+  trendDirection,
+  className,
+}: MetricCardProps) {
+  const trendColor =
+    trendDirection === 'up'
+      ? 'text-green-600'
+      : trendDirection === 'down'
+      ? 'text-red-600'
+      : 'text-muted-foreground';
   return (
-    <Card className={cn("shadow-md hover:shadow-lg transition-shadow", className)}>
+    <Card
+      className={cn('shadow-md hover:shadow-lg transition-shadow', className)}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
         <Icon className="h-5 w-5 text-primary" />
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold text-foreground">
-          {typeof value === 'number' && (title.toLowerCase().includes('sales') || title.toLowerCase().includes('revenue')) ? `৳${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : value.toLocaleString()}
+          {typeof value === 'number' &&
+          (title.toLowerCase().includes('sales') ||
+            title.toLowerCase().includes('revenue'))
+            ? `৳${value.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`
+            : value.toLocaleString()}
         </div>
-        {description && <p className="text-xs text-muted-foreground pt-1">{description}</p>}
+        {description && (
+          <p className="text-xs text-muted-foreground pt-1">{description}</p>
+        )}
         {trend !== undefined && (
-          <p className={cn("text-xs pt-1", trendColor)}>
-            {trend > 0 ? '+' : ''}{trend.toFixed(1)}% from last month
+          <p className={cn('text-xs pt-1', trendColor)}>
+            {trend > 0 ? '+' : ''}
+            {trend.toFixed(1)}% from last month
           </p>
         )}
       </CardContent>
     </Card>
   );
 }
-
 
 export default async function AdminDashboardPage() {
   const metrics = await getDashboardAnalytics();
@@ -79,7 +122,7 @@ export default async function AdminDashboardPage() {
     if (growth > 0) return 'up';
     if (growth < 0) return 'down';
     return 'neutral';
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -89,7 +132,10 @@ export default async function AdminDashboardPage() {
             <LayoutDashboard size={30} className="mr-3 text-primary" />
             Admin Dashboard
           </CardTitle>
-          <CardDescription className="text-md">Welcome to the CAN Admin Panel. Here's a quick overview of your store.</CardDescription>
+          <CardDescription className="text-md">
+            Welcome to the Cstyle Admin Panel. Here's a quick overview of your
+            store.
+          </CardDescription>
         </CardHeader>
       </Card>
 
@@ -97,7 +143,7 @@ export default async function AdminDashboardPage() {
         <MetricCard
           title="Total Sales"
           value={metrics.totalSales}
-          icon={TakaIcon} 
+          icon={TakaIcon}
           description="All-time gross sales from completed orders."
         />
         <MetricCard
@@ -120,7 +166,7 @@ export default async function AdminDashboardPage() {
           icon={Package}
           description="Orders currently 'Pending' or 'Processing'."
         />
-         <MetricCard
+        <MetricCard
           title="Orders This Month"
           value={metrics.ordersThisMonthCount}
           icon={PackagePlus}
@@ -133,11 +179,13 @@ export default async function AdminDashboardPage() {
           description="Total registered users on the platform."
         />
       </div>
-      
+
       <Card className="mt-6 shadow-md">
         <CardHeader>
-          <CardTitle>Monthly Sales Analytics (Last 6 Months)</CardTitle>
-          <CardDescription>Sales revenue from delivered orders over the past six months.</CardDescription>
+          <CardTitle>Monthly Sales Analytics (Last 3 Months)</CardTitle>
+          <CardDescription>
+            Sales revenue from delivered orders over the past three months.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <AdminSalesChart data={metrics.monthlySalesChartData} />
