@@ -1,4 +1,3 @@
-
 import { connectToDatabase } from '@/lib/mongodb';
 import type { OrderDoc, DbUser } from '@/types'; // Assuming OrderDoc and DbUser are your database types
 
@@ -20,102 +19,167 @@ export interface DashboardMetrics {
 }
 
 export async function getDashboardAnalytics(): Promise<DashboardMetrics> {
-  console.log('[dashboardService] getDashboardAnalytics called');
   try {
     const { db } = await connectToDatabase();
     const ordersCollection = db.collection<OrderDoc>('orders');
     const usersCollection = db.collection<DbUser>('users');
 
-    // --- Sales and Order Counts ---
-    const salesPipeline = [
-      { $match: { orderStatus: 'Delivered' } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-    ];
-    const salesResult = await ordersCollection.aggregate(salesPipeline).toArray();
-    const totalSales = salesResult.length > 0 && salesResult[0].total ? salesResult[0].total : 0;
-
-    const completedOrdersCount = await ordersCollection.countDocuments({ orderStatus: 'Delivered' });
-    const activeOrdersCount = await ordersCollection.countDocuments({ orderStatus: { $in: ['Pending', 'Processing'] } });
-
-    // --- User Counts ---
-    const totalUsersCount = await usersCollection.countDocuments();
-
-    // --- Monthly Data for current and last month sales ---
     const today = new Date();
-    const firstDayCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const firstDayNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const firstDayCurrentMonth = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+    const firstDayLastMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() - 1,
+      1
+    );
+    const firstDayNextMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      1
+    );
+    const chartStartDate = new Date(
+      today.getFullYear(),
+      today.getMonth() - 2,
+      1
+    );
 
-    const ordersThisMonthCount = await ordersCollection.countDocuments({
-      createdAt: { $gte: firstDayCurrentMonth, $lt: firstDayNextMonth }
-    });
+    // Single aggregation pipeline for all order metrics
+    const orderMetrics = await ordersCollection
+      .aggregate([
+        {
+          $facet: {
+            totalSales: [
+              { $match: { orderStatus: 'Delivered' } },
+              { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+            ],
+            completedCount: [
+              { $match: { orderStatus: 'Delivered' } },
+              { $count: 'count' },
+            ],
+            activeCount: [
+              { $match: { orderStatus: { $in: ['Pending', 'Processing'] } } },
+              { $count: 'count' },
+            ],
+            thisMonthMetrics: [
+              {
+                $match: {
+                  createdAt: {
+                    $gte: firstDayCurrentMonth,
+                    $lt: firstDayNextMonth,
+                  },
+                },
+              },
+              {
+                $group: {
+                  _id: null,
+                  count: { $sum: 1 },
+                  sales: {
+                    $sum: {
+                      $cond: [
+                        { $eq: ['$orderStatus', 'Delivered'] },
+                        '$totalAmount',
+                        0,
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+            lastMonthSales: [
+              {
+                $match: {
+                  orderStatus: 'Delivered',
+                  createdAt: {
+                    $gte: firstDayLastMonth,
+                    $lt: firstDayCurrentMonth,
+                  },
+                },
+              },
+              { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+            ],
+            chartData: [
+              {
+                $match: {
+                  orderStatus: 'Delivered',
+                  createdAt: { $gte: chartStartDate, $lt: firstDayNextMonth },
+                },
+              },
+              {
+                $group: {
+                  _id: {
+                    year: { $year: '$createdAt' },
+                    month: { $month: '$createdAt' },
+                  },
+                  totalSales: { $sum: '$totalAmount' },
+                },
+              },
+              { $sort: { '_id.year': 1, '_id.month': 1 } },
+            ],
+          },
+        },
+      ])
+      .toArray();
 
-    const salesThisMonthPipeline = [
-      { $match: { orderStatus: 'Delivered', createdAt: { $gte: firstDayCurrentMonth, $lt: firstDayNextMonth } } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-    ];
-    const salesThisMonthResult = await ordersCollection.aggregate(salesThisMonthPipeline).toArray();
-    const salesThisMonth = salesThisMonthResult.length > 0 && salesThisMonthResult[0].total ? salesThisMonthResult[0].total : 0;
-    
-    const salesLastMonthPipeline = [
-      { $match: { orderStatus: 'Delivered', createdAt: { $gte: firstDayLastMonth, $lt: firstDayCurrentMonth } } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-    ];
-    const salesLastMonthResult = await ordersCollection.aggregate(salesLastMonthPipeline).toArray();
-    const salesLastMonth = salesLastMonthResult.length > 0 && salesLastMonthResult[0].total ? salesLastMonthResult[0].total : 0;
+    const metrics = orderMetrics[0];
+    const totalSales = metrics.totalSales[0]?.total || 0;
+    const completedOrdersCount = metrics.completedCount[0]?.count || 0;
+    const activeOrdersCount = metrics.activeCount[0]?.count || 0;
+    const ordersThisMonthCount = metrics.thisMonthMetrics[0]?.count || 0;
+    const salesThisMonth = metrics.thisMonthMetrics[0]?.sales || 0;
+    const salesLastMonth = metrics.lastMonthSales[0]?.total || 0;
+
+    const totalUsersCount = await usersCollection.countDocuments();
 
     let salesGrowthPercentage = 0;
     if (salesLastMonth > 0) {
-      salesGrowthPercentage = ((salesThisMonth - salesLastMonth) / salesLastMonth) * 100;
+      salesGrowthPercentage =
+        ((salesThisMonth - salesLastMonth) / salesLastMonth) * 100;
     } else if (salesThisMonth > 0) {
-      salesGrowthPercentage = 100; // Infinite growth if last month was 0 and this month is positive
+      salesGrowthPercentage = 100;
     }
 
-    // --- Monthly Sales Chart Data (Last 3 Months) ---
-    const N_MONTHS_FOR_CHART = 3;
-    const chartStartDate = new Date(today.getFullYear(), today.getMonth() - (N_MONTHS_FOR_CHART - 1), 1);
-
-    const monthlySalesAggPipeline = [
-      {
-        $match: {
-          orderStatus: 'Delivered',
-          createdAt: { $gte: chartStartDate, $lt: firstDayNextMonth } // from start of 6-month window to end of current month
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' }
-          },
-          totalSales: { $sum: '$totalAmount' }
-        }
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    const monthMap = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
-    const aggregatedMonthlySales = await ordersCollection.aggregate(monthlySalesAggPipeline).toArray();
-    
-    const monthMap = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const monthlySalesChartData: MonthlySalesData[] = [];
+    const N_MONTHS_FOR_CHART = 3;
+
     for (let i = 0; i < N_MONTHS_FOR_CHART; i++) {
-      const targetMonthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const targetMonthDate = new Date(
+        today.getFullYear(),
+        today.getMonth() - i,
+        1
+      );
       const year = targetMonthDate.getFullYear();
-      const monthIndex = targetMonthDate.getMonth(); // 0-11
+      const monthIndex = targetMonthDate.getMonth();
 
       const monthName = `${monthMap[monthIndex]} '${String(year).slice(-2)}`;
-      
-      const foundSale = aggregatedMonthlySales.find(
-        (sale: any) => sale._id.year === year && sale._id.month === (monthIndex + 1) // MongoDB month is 1-12
+
+      const foundSale = metrics.chartData.find(
+        (sale: any) =>
+          sale._id.year === year && sale._id.month === monthIndex + 1
       );
-      
+
       monthlySalesChartData.push({
         name: monthName,
-        sales: foundSale ? foundSale.totalSales : 0
+        sales: foundSale ? foundSale.totalSales : 0,
       });
     }
-    monthlySalesChartData.reverse(); // To have the oldest month first
-
-    console.log('[dashboardService] Metrics calculated, including chart data.');
+    monthlySalesChartData.reverse();
 
     return {
       totalSales,
@@ -128,10 +192,11 @@ export async function getDashboardAnalytics(): Promise<DashboardMetrics> {
       salesGrowthPercentage,
       monthlySalesChartData,
     };
-
   } catch (error: any) {
-    console.error('[dashboardService] Error in getDashboardAnalytics:', error.message);
-    // Return default/zero values in case of an error to prevent page crash
+    console.error(
+      '[dashboardService] Error in getDashboardAnalytics:',
+      error.message
+    );
     return {
       totalSales: 0,
       completedOrdersCount: 0,
@@ -141,12 +206,32 @@ export async function getDashboardAnalytics(): Promise<DashboardMetrics> {
       salesThisMonth: 0,
       salesLastMonth: 0,
       salesGrowthPercentage: 0,
-      monthlySalesChartData: Array(3).fill(null).map((_, i) => {
-        const d = new Date();
-        d.setMonth(d.getMonth() - (2-i));
-        const monthMap = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        return { name: `${monthMap[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`, sales: 0 };
-      }),
+      monthlySalesChartData: Array(3)
+        .fill(null)
+        .map((_, i) => {
+          const d = new Date();
+          d.setMonth(d.getMonth() - (2 - i));
+          const monthMap = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ];
+          return {
+            name: `${monthMap[d.getMonth()]} '${String(d.getFullYear()).slice(
+              -2
+            )}`,
+            sales: 0,
+          };
+        }),
     };
   }
 }

@@ -73,6 +73,7 @@ export default function ProfileClient() {
   const [isSubmittingName, setIsSubmittingName] = useState(false);
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -259,6 +260,7 @@ export default function ProfileClient() {
   };
 
   const handleLogout = () => {
+    setIsLoggingOut(true);
     const tokenBeforeLogout = localStorage.getItem('authToken');
     localStorage.removeItem('authToken');
     localStorage.removeItem('userRole');
@@ -277,7 +279,10 @@ export default function ProfileClient() {
       description: 'You have been successfully logged out.',
       variant: 'default',
     });
-    router.push('/');
+    // Use setTimeout to ensure toast is shown before redirect (minimal delay)
+    setTimeout(() => {
+      router.push('/');
+    }, 100);
   };
 
   if (isLoading) {
@@ -560,11 +565,16 @@ export default function ProfileClient() {
           </p>
           <Button
             onClick={handleLogout}
+            disabled={isLoggingOut}
             variant="destructive"
             className="w-full sm:w-auto gap-2"
           >
-            <LogOut size={18} />
-            Logout
+            {isLoggingOut ? (
+              <LoadingSpinner size={18} className="mr-2" />
+            ) : (
+              <LogOut size={18} />
+            )}
+            {isLoggingOut ? 'Logging out...' : 'Logout'}
           </Button>
         </CardContent>
       </Card>

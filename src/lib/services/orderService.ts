@@ -38,7 +38,6 @@ export async function createOrder(
     couponDiscountAmount,
   } = orderData;
 
-  console.log(`[orderService] createOrder called for userId: ${userId}`);
   try {
     const { db } = await connectToDatabase();
     const ordersCollection = db.collection<OrderDoc>('orders');
@@ -94,7 +93,6 @@ export async function createOrder(
  * Fetches all orders for the admin panel.
  */
 export async function getAdminOrders(): Promise<Order[]> {
-  console.log('[orderService] getAdminOrders called');
   try {
     const { db } = await connectToDatabase();
     const ordersCollection = db.collection<OrderDoc>('orders');
@@ -110,8 +108,12 @@ export async function getAdminOrders(): Promise<Order[]> {
       ...order,
       _id: order._id.toString(),
       id: order._id.toString(),
-      createdAt: order.createdAt.toISOString(),
-      updatedAt: order.updatedAt.toISOString(),
+      createdAt: order.createdAt
+        ? order.createdAt.toISOString()
+        : new Date().toISOString(),
+      updatedAt: order.updatedAt
+        ? order.updatedAt.toISOString()
+        : new Date().toISOString(),
       deliveredAt: order.deliveredAt
         ? order.deliveredAt.toISOString()
         : undefined,
@@ -122,9 +124,6 @@ export async function getAdminOrders(): Promise<Order[]> {
       })),
     })) as Order[];
 
-    console.log(
-      `[orderService] Fetched ${populatedOrders.length} orders for admin (from November 2025 onwards).`
-    );
     return populatedOrders;
   } catch (error: any) {
     console.error('[orderService] Error in getAdminOrders:', error.message);
@@ -136,9 +135,7 @@ export async function getAdminOrders(): Promise<Order[]> {
  * Fetches all orders for a specific user.
  */
 export async function getOrdersByUserId(userId: string): Promise<Order[]> {
-  console.log(`[orderService] getOrdersByUserId called for userId: ${userId}`);
   if (!ObjectId.isValid(userId)) {
-    console.warn(`[orderService] Invalid userId format: ${userId}`);
     return [];
   }
 

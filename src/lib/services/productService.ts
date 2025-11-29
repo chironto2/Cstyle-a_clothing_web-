@@ -7,7 +7,6 @@ import { ObjectId } from 'mongodb';
  * Cstyle be expanded with filtering, sorting, and pagination parameters.
  */
 export async function getAdminProducts(): Promise<Product[]> {
-  console.log('[productService] getAdminProducts called');
   try {
     const { db } = await connectToDatabase();
     const productsCollection = db.collection<Product>('products');
@@ -20,7 +19,7 @@ export async function getAdminProducts(): Promise<Product[]> {
     const productsWithStringIds = productsArray.map((p) => ({
       ...p,
       _id: p._id ? p._id.toString() : undefined,
-      id: p._id ? p._id.toString() : undefined, // Ensure id is also populated
+      id: p._id ? p._id.toString() : undefined,
       discountType: p.discountType || undefined,
       discountValue:
         p.discountValue === null || p.discountValue === 0
@@ -29,12 +28,9 @@ export async function getAdminProducts(): Promise<Product[]> {
       colors: p.colors.map((color) => ({
         ...color,
       })),
-      specifications: p.specifications || [], // Ensure specifications array exists
+      specifications: p.specifications || [],
     }));
 
-    console.log(
-      `[productService] Fetched ${productsWithStringIds.length} products for admin.`
-    );
     return productsWithStringIds as Product[];
   } catch (error: any) {
     console.error('[productService] Error in getAdminProducts:', error.message);
@@ -46,7 +42,6 @@ export async function getAdminProducts(): Promise<Product[]> {
  * Fetches products for public display, with an optional limit.
  */
 export async function getPublicProducts(limit?: number): Promise<Product[]> {
-  console.log(`[productService] getPublicProducts called with limit: ${limit}`);
   try {
     const { db } = await connectToDatabase();
     const productsCollection = db.collection<Product>('products');
@@ -61,7 +56,7 @@ export async function getPublicProducts(limit?: number): Promise<Product[]> {
     const productsWithStringIds = productsArray.map((p) => ({
       ...p,
       _id: p._id ? p._id.toString() : undefined,
-      id: p._id ? p._id.toString() : undefined, // Ensure id is also populated
+      id: p._id ? p._id.toString() : undefined,
       discountType: p.discountType || undefined,
       discountValue:
         p.discountValue === null || p.discountValue === 0
@@ -70,12 +65,9 @@ export async function getPublicProducts(limit?: number): Promise<Product[]> {
       colors: p.colors.map((color) => ({
         ...color,
       })),
-      specifications: p.specifications || [], // Ensure specifications array exists
+      specifications: p.specifications || [],
     }));
 
-    console.log(
-      `[productService] Fetched ${productsWithStringIds.length} public products.`
-    );
     return productsWithStringIds as Product[];
   } catch (error: any) {
     console.error(
@@ -92,9 +84,7 @@ export async function getPublicProducts(limit?: number): Promise<Product[]> {
 export async function getProductById(
   productId: string
 ): Promise<Product | null> {
-  console.log(`[productService] getProductById called for ID: ${productId}`);
   if (!ObjectId.isValid(productId)) {
-    console.warn(`[productService] Invalid product ID format: ${productId}`);
     return null;
   }
 
@@ -106,24 +96,20 @@ export async function getProductById(
     });
 
     if (!product) {
-      console.warn(`[productService] Product not found for ID: ${productId}`);
       return null;
     }
 
     const productWithStringId = {
       ...product,
       _id: product._id.toString(),
-      id: product._id.toString(), // Ensure id is also populated
+      id: product._id.toString(),
       discountType: product.discountType || undefined,
       discountValue:
         product.discountValue === null || product.discountValue === 0
           ? undefined
           : product.discountValue,
-      specifications: product.specifications || [], // Ensure specifications array exists
+      specifications: product.specifications || [],
     };
-    console.log(
-      `[productService] Fetched product: ${productWithStringId.name}`
-    );
     return productWithStringId as Product;
   } catch (error: any) {
     console.error(

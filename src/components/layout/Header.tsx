@@ -329,8 +329,11 @@ export default function Header() {
               ) : isAuthenticated && userName ? (
                 <Button
                   variant="outline"
-                  onClick={() => router.push('/dashboard/profile')}
-                  className="gap-2 text-sm"
+                  onClick={() => {
+                    // Instant visual feedback
+                    router.push('/dashboard/profile');
+                  }}
+                  className="gap-2 text-sm hover:scale-105 transition-transform duration-150"
                   aria-label="View profile"
                 >
                   <User className="h-4 w-4" />
