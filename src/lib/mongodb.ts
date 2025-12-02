@@ -6,6 +6,21 @@ import { MongoClient, type Db } from 'mongodb';
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
 
+let client: MongoClient | null = null;
+
+export async function getDbClient() {
+  if (process.env.DISABLE_DB_DURING_BUILD === 'true') {
+    console.log('Skipping DB connection during build');
+    return null;
+  }
+
+  if (client) return client;
+
+  client = new MongoClient(process.env.MONGODB_URI ?? '');
+  await client.connect();
+  return client;
+}
+
 export async function connectToDatabase(): Promise<{
   client: MongoClient;
   db: Db;
