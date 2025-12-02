@@ -1,8 +1,4 @@
-// src/app/login/page.tsx
-import dynamic from 'next/dynamic';
-
-// Client-only component
-const LoginClient = dynamic(() => import('./LoginClient'), { ssr: false });
+import LoginClient from './LoginClient';
 
 export default function LoginPage() {
   return (

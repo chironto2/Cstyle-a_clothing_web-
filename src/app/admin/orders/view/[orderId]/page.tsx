@@ -8,7 +8,10 @@ export const metadata = {
   description: 'View the details of a specific customer order.',
 };
 
-interface AdminOrderDetailPageProps {
+// Update: use PageProps type from Next.js for server component
+import type { PageProps } from 'next/app';
+
+interface AdminOrderDetailPageProps extends PageProps {
   params: {
     orderId: string;
   };
